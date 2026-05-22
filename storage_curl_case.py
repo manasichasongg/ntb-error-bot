@@ -39,6 +39,9 @@ SHEETS_TTL = 300  # refresh ทุก 5 นาที
 _sheets_cache: dict = {"data": None, "ts": 0}
 NGROK_DOMAIN = "epileptic-kennel-fling.ngrok-free.dev"
 REPOS_DIR = r"C:\Users\manasicha.son\Downloads\theme"
+ANALYZE_SPACE = "spaces/AAQAy9XnBM0"  # ห้อง Bot error analyze — ไม่ส่ง webhook ซ้ำจากห้องนี้
+GITLAB_URL = os.environ.get("GITLAB_URL", "https://git.ntbx.tech")
+GITLAB_TOKEN = os.environ.get("GITLAB_TOKEN", "aV1D4MnkC-_8pXW9DxJ6")
 
 # conversation state per thread/space
 _sessions: dict = {}
@@ -191,41 +194,32 @@ def extract_identifiers(text: str) -> list:
     return list(dict.fromkeys(x for x in identifiers if x not in noise and len(x) > 3))
 
 
-def find_source_files(identifiers: list, max_files: int = 4) -> list:
-    """ค้นหาไฟล์ source code จาก repos ที่โคลนมา"""
-    if not identifiers or not os.path.exists(REPOS_DIR):
-        return []
-    skip_dirs = {'.git', 'node_modules', 'target', 'build', '.gradle', '__pycache__', '.idea', 'dist'}
-    extensions = ('.java', '.py', '.js', '.ts', '.go', '.kt', '.xml', '.yaml', '.yml', '.properties')
-    found = []
-    seen = set()
-    for term in identifiers:
-        for root, dirs, files in os.walk(REPOS_DIR):
-            dirs[:] = [d for d in dirs if d not in skip_dirs]
-            for fname in files:
-                if fname.endswith(extensions) and term.lower() in fname.lower():
-                    fpath = os.path.join(root, fname)
-                    if fpath not in seen:
-                        seen.add(fpath)
-                        found.append(fpath)
-                        if len(found) >= max_files:
-                            return found
-    return found
-
-
-def read_file_snippet(file_path: str, max_lines: int = 80) -> str:
-    """อ่าน source code ไม่เกิน max_lines บรรทัด"""
-    try:
-        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-            lines = []
-            for i, line in enumerate(f):
-                if i >= max_lines:
-                    break
-                lines.append(line)
-        rel = os.path.relpath(file_path, REPOS_DIR)
-        return f"// {rel}\n{''.join(lines)}"
-    except Exception:
+def search_gitlab_code(identifiers: list, max_results: int = 4) -> str:
+    """ค้นหา source code จาก GitLab API แทนการอ่านไฟล์ local"""
+    if not identifiers or not GITLAB_TOKEN:
         return ""
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    snippets = []
+    seen = set()
+    for term in identifiers[:3]:
+        try:
+            url = f"{GITLAB_URL}/api/v4/search?scope=blobs&search={term}&per_page=3"
+            req = urllib.request.Request(url, headers={"PRIVATE-TOKEN": GITLAB_TOKEN})
+            with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+                results = json.loads(resp.read())
+            for r in results:
+                key = f"{r.get('project_id')}/{r.get('path')}"
+                if key not in seen:
+                    seen.add(key)
+                    snippets.append(f"// {r.get('path', '')}\n{r.get('data', '')}")
+                    if len(snippets) >= max_results:
+                        return "\n\n".join(snippets)
+        except Exception as e:
+            print(f"[gitlab] {term}: {e}")
+    return "\n\n".join(snippets)
 
 
 def is_error_message(text: str) -> bool:
@@ -549,21 +543,16 @@ def handle_ai_chat(text: str, session_key: str) -> str:
     sheets_data = fetch_sheets_data()
     sheets_section = f"\n\nข้อมูล incident/issue จาก Google Sheets:\n{sheets_data}" if sheets_data else ""
 
-    # ถ้าดูเหมือน error — ค้นหา source code จาก repos ที่โคลนมา
+    # ถ้าดูเหมือน error — ค้นหา source code จาก GitLab API
     source_section = ""
     if is_error_message(text):
         identifiers = extract_identifiers(text)
         if identifiers:
-            files = find_source_files(identifiers)
-            if files:
-                snippets = [read_file_snippet(f) for f in files]
-                snippets = [s for s in snippets if s]
-                if snippets:
-                    combined = "\n\n".join(f"```\n{s}\n```" for s in snippets)
-                    # จำกัดความยาวไม่ให้ prompt ใหญ่เกินไป
-                    if len(combined) > 4000:
-                        combined = combined[:4000] + "\n... (ตัดออกเพราะยาวเกิน)"
-                    source_section = f"\n\nSource code จาก repo ที่เกี่ยวข้อง (ใช้ประกอบการวิเคราะห์):\n{combined}"
+            combined = search_gitlab_code(identifiers)
+            if combined:
+                if len(combined) > 4000:
+                    combined = combined[:4000] + "\n... (ตัดออกเพราะยาวเกิน)"
+                source_section = f"\n\nSource code จาก GitLab (ใช้ประกอบการวิเคราะห์):\n```\n{combined}\n```"
 
     system_prompt = (
         "คุณคือผู้ช่วย on-call สำหรับทีม NTB (บริษัทสินเชื่อมอเตอร์ไซค์และที่ดิน)\n"
@@ -829,7 +818,7 @@ def webhook():
             if arg_text:
                 # ถูก @mention → ตอบปกติ
                 reply = process_message(arg_text, session_key)
-                if is_error_message(arg_text):
+                if is_error_message(arg_text) and space != ANALYZE_SPACE:
                     header = f"🔔 *Auto-analyzed* | {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
                     threading.Thread(target=send_to_gchat_webhook, args=(header + reply,), daemon=True).start()
                 return addons_response(reply)
