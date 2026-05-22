@@ -1,0 +1,22 @@
+{
+  "screens": ["LOS", "OMS", "AMS", "BES", "BOS", "CMS", "RCS", "RMS", "PMS", "WMS"],
+  "roles": {
+    "CO": ["LOS", "BES", "BOS"],
+    "checker > RM ชั่วคราว": ["LOS", "OMS", "AMS"],
+    "preparer": ["LOS", "AMS", "BES"],
+    "admin": ["LOS", "CMS", "RMS", "PMS"],
+    "QA": ["LOS", "OMS"],
+    "CA": ["LOS", "BES", "BOS"],
+    "collection": ["LOS"],
+    "Audit": ["LOS", "OMS", "AMS", "BES", "RMS"],
+    "Assist Marketing Manager": ["LOS", "AMS", "WMS"],
+    "Portfolio": ["LOS", "RCS"],
+    "maker": ["LOS", "OMS", "AMS", "RMS", "WMS"],
+    "Disb Checker": ["LOS", "OMS", "AMS"],
+    "branch oper sup": ["LOS", "OMS", "AMS", "BES"],
+    "Insurance specialist": ["LOS"],
+    "Accounting": ["LOS", "AMS", "BES"],
+    "Signer": ["LOS", "OMS", "AMS", "PMS"],
+    "callcenter": ["LOS", "OMS", "WMS"]
+  }
+}

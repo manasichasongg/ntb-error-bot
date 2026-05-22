@@ -1,0 +1,9 @@
+vpn_creds.txt
+config.json
+*.bat
+run_log.txt
+chat_log.txt
+__pycache__/
+*.pyc
+.env
+.claude/

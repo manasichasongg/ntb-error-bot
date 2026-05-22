@@ -1,0 +1,126 @@
+[
+  {
+    "id": 1,
+    "description": "SAPไม่สร้างสัญญา",
+    "curl": "curl --location 'http://shinzo-api.ntb-prod-alb-backend-2.ntb.team/api/sap/rerun/new-contract' \\\n--header 'userId: 704' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"contractId\" : \"{{contractId}}\",\n    \"isRerunByRequestLogId\" : false\n}'",
+    "created_at": "2026-05-12 14:18",
+    "updated_at": "2026-05-13 16:44"
+  },
+  {
+    "id": 2,
+    "description": "👹ยกเลิกประกันผ่อน",
+    "curl": "👹 *ยกเลิกประกันผ่อน* (4 สเต็ป)\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n*1️⃣ หา application_id*\n📋 *SQL:*\n```\nSELECT a.*\nFROM insurance.application AS a\nWHERE insurance_application_number = 'เลขที่ใบคำขอ';\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*2️⃣ ดู status*\n📋 *SQL:*\n```\nSELECT s.*\nFROM insurance.application_state AS s\nWHERE s.application_id = (\n  SELECT id FROM insurance.application\n  WHERE insurance_application_number = 'เลขที่ใบคำขอ'\n);\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*3️⃣ เช็คว่ามีข้อมูลใน insurance_cancel ไหม*\n⚠️ ต้องไม่มีข้อมูล ถึงจะยกเลิกได้\n📋 *SQL:*\n```\nSELECT c.*\nFROM insurance_operation.insurance_cancel AS c\nWHERE c.application_id = (\n  SELECT id FROM insurance.application\n  WHERE insurance_application_number = 'เลขที่ใบคำขอ'\n);\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*4️⃣ ยิง API ยกเลิกประกัน*\n(ApplicationId จาก ข้อ 1)\n🌐 *CURL:*\n```\ncurl --location --globoff '{{rosie}}/api/insurance-operation/request-cancel' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"ApplicationId\": \"application_id\",\n    \"WfUserId\": 704,\n    \"isUrgent\": false,\n    \"Reason\": \"อื่นๆ\",\n    \"SubReason\": \"\",\n    \"Remark\": \"ไม่สามารถทำการสมัครได้\",\n    \"insuranceCompulsoryShipment\": {\n        \"IsCustomerSender\": false,\n        \"ShippingCompany\": \"\",\n        \"TrackingNumber\": \"\"\n    },\n    \"insuranceCancelPicture\": [],\n    \"detailTypeCancel\": 3,\n    \"productTypeId\": [3]\n}'\n```\n✅ *Check: Query ข้อ 2 อีกรอบ → state_id ต้องเป็น 13*",
+    "created_at": "2026-05-12 14:29",
+    "updated_at": "2026-05-19 11:00"
+  },
+  {
+    "id": 3,
+    "description": "🛵แก้เลขตัวถัง",
+    "curl": "curl --location --request PATCH 'http://golden-api.ntb-prod.ntb.team:8001/api/collaterals/435483' \\\n--header 'userid: 704' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"collateralTypeId\": 1,\n    \"contractId\": 1038857,\n    \"bike\": {\n        \"chassisNumber\": \"3515K5417431\"\n    }\n}'",
+    "created_at": "2026-05-12 14:31"
+  },
+  {
+    "id": 4,
+    "description": "📧เปลี่ยนอีเมลพนักงาน",
+    "curl": "📧 *เปลี่ยนอีเมลพนักงาน* (2 สเต็ป)\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n*1️⃣ เข้าไปดูที่*\n`employee_central.employee_email`\nกับ\n`employee_central.employee_email`\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*2️⃣ ยิง API แก้ไขอีเมลพนักงาน*\n🌐 *CURL:*\n```\ncurl --location --request PATCH \\\n'http://godzilla-api.ntb-prod-alb-backend-1.ntb.team/api/employees-central/employees-email/bulk-company' \\\n--header 'userId: 704' \\\n--header 'Content-Type: application/json' \\\n--data-raw '{\n    \"listUpdateEmail\": [\n        {\n            \"employeeCode\": \"รหัสพนักงาน\",\n            \"employeeEmail\": \"อีเมลใหม่\"\n        }\n    ]\n}'\n```",
+    "created_at": "2026-05-12 14:33",
+    "updated_at": "2026-05-20 00:00"
+  },
+  {
+    "id": 5,
+    "description": "👮ที่ดินเปลี่ยนตำบลอำเภอ",
+    "curl": "curl --location --request PATCH 'http://golden-api.ntb-prod.ntb.team:8001/api/collaterals/186193/lands' \\\n--header 'userid: 704' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"collateralTypeId\": 3,\n    \"contractId\": 1348750,\n    \"realEstate\": {\n        \"realEstateSubdistrictId\": 45,\n        \"realEstateDistrictId\": 6\n    }\n}'",
+    "created_at": "2026-05-12 14:57"
+  },
+  {
+    "id": 6,
+    "description": "🌎📗 ดีเทลที่ดินส่วนแรก+Ratebook ตามสภาพที่ดิน",
+    "curl": "curl --location --globoff --request PATCH 'http://golden-api.ntb-prod.ntb.team:8001/api/collaterals/{{collateral_id}}/lands' \\\n--header 'userid: 704' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"collateralTypeId\": 3,\n    \"contractId\": 1445635,\n    \"land\": {\n        \"calculatedLandAppraisalValue\": 68000\n    },\n    \"titleDeed\": {\n        \"accessRoadTypeId\": 16,\n        \"isAvailableElectrical\": false,\n        \"titleDeedNumber\": \"7038899\",\n        \"titleDeedParcelNumber\": \"4422053\",\n        \"titleDeedMapSheetNumber\": \"12\",\n        \"titleDeedMapSheetIndex\": \"III\",\n        \"titleDeedMapSheetScaledNumber\": \"1223\",\n        \"titleDeedSubDistrictNumber\": \"123\",\n        \"titleDeedVolume\": \"12\",\n        \"titleDeedPage\": \"2\"\n    }\n}'",
+    "created_at": "2026-05-12 14:59"
+  },
+  {
+    "id": 7,
+    "description": "📈 ขยายความคุ้มครองประกัน",
+    "curl": "curl --location --request PATCH 'http://kaido-api.ntb-prod-alb-backend-1.ntb.team/api/viriyah/campaigns?Userid=1' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"campaignId\": \"{{campaign_id}}\",\n    \"updateDataDetails\": [\n        {\n            \"fieldName\": \"expired_date\",\n            \"value\": \"2026-12-31 16:59:59.000\"\n        }\n    ]\n}'",
+    "created_at": "2026-05-12 15:05"
+  },
+  {
+    "id": 8,
+    "description": "⁉️รายการใน Unknow",
+    "curl": "1.เปลี่ยนสถานะรายการบน unknown ให้กลายเป็น state = 4 (ยกเลิก/ลบ) \ncurl --location 'http://igneel-api.ntb-prod.ntb.team:8001/api/unknowns/{{Unknowdetail_id}}' \\\n--header 'userid: 704' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"action\": \"cancel\"\n}'\n2.ยิง api จ่ายประกันบน insurance_sale (tenryu)\ncurl --location 'http://tenryu-api.ntb-prod.ntb.team:8002/api/insurance-sales/{{insurancesale_id}}/payments' \\\n--header 'userId: 704' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"insuranceSaleId\": \"{{insuranceSaleId}}\",\n    \"amount\": 1250.00,\n    \"effectiveDate\": \"2026-05-09T08:55:34+00:00\",\n    \"paymentChannel\": 2,\n    \"branchId\": null\n}'\n\n \nแก้ไข:\n⁉️\nรายการใน Unknow",
+    "created_at": "2026-05-13 10:38",
+    "updated_at": "2026-05-13 16:12"
+  },
+  {
+    "id": 9,
+    "description": "👿Add Blacklist",
+    "curl": "curl --location 'http://internal-ntb-prod-2-1695104358.ap-southeast-1.elb.amazonaws.com:8183/api/blacklist' \\\n--header 'userId: 704' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"blacklistTypeId\": {{TypeId}},\n    \"chassisNumber\": \"{{chassis_number}}\",\n    \"licensePlate\": \"{{license_plate}}\",\n    \"reasonId\": 32,\n    \"provincialName\": \"{{provincial_name}}\",\n    \"description\": \"เคยเป็นทรัพย์สินรอการขายของบริษัทฯ และถูกขายทอดตลาดในราคาต่ำกว่าภาระหนี้เงินต้นคงค้าง\"\n}'",
+    "created_at": "2026-05-13 10:48",
+    "updated_at": "2026-05-15 13:35"
+  },
+  {
+    "id": 10,
+    "description": "🫨 แก้ชื่อเล่น cus info",
+    "curl": "curl --location --request PATCH 'http://rick-api.ntb-prod-alb-backend-2.ntb.team//api/customer-info/person' \\\n--header 'userid: 704' \\\n--header 'Content-Type: application/json' \\\n--data '[\n    {\n        \"idCard\": \"{{IdCard}}\",\n        \"personInfo\": {\n            \"nickName\": \"{{Nickname}}\"\n        }\n    }\n]\n'",
+    "created_at": "2026-05-13 11:13"
+  },
+  {
+    "id": 11,
+    "description": "🤔แก้ชื่อเล่นในหน้าสัญญา",
+    "curl": "curl --location --globoff --request PATCH 'http://golden-api.ntb-prod.ntb.team:8001/api/persons/{{person_id}}' \\\n--header 'userid: 704' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"contractId\": \"{{contractId}}\" ,\n    \"nickName\":  \"{{nickName}}\"\n}'",
+    "created_at": "2026-05-13 11:15",
+    "updated_at": "2026-05-13 16:47"
+  },
+  {
+    "id": 12,
+    "description": "🚘/🏍️แก้ไขเลขเครื่องยนต์",
+    "curl": "curl --location --request PATCH 'http://golden-api.ntb-prod.ntb.team:8001/api/collaterals/563890' \\\n--header 'userid: 704' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"collateralTypeId\": 1,\n    \"contractId\": 1424735,\n    \"bike\": {\n         \"engineCode\": \"18\",\n        \"engineNumber\": \"00869\"\n    }\n}'",
+    "created_at": "2026-05-13 11:18"
+  },
+  {
+    "id": 13,
+    "description": "🛵แก้ไขลักษณะรถตาม พ.ร.บ.12-->17",
+    "curl": "curl --location --request PATCH 'http://golden-api.ntb-prod.ntb.team:8001/api/collaterals/545578' \\\n--header 'userid: 704' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"collateralTypeId\": 1,\n    \"contractId\": 1377691,\n    \"bike\": {\n        \"conditionId\": 2\n    }\n}'",
+    "created_at": "2026-05-13 11:21"
+  },
+  {
+    "id": 14,
+    "description": "🚲แก้ไขลักษณะรถตาม พ.ร.บ.17-->12",
+    "curl": "curl --location --globoff --request PATCH 'http://app.ntb.team:8081/api/collaterals/{{collateral_id}}' \\\n--header 'userid: 704' \\\n--header 'Content-Type: application/json' \\\n--data '{\n    \"collateralTypeId\": 1,\n    \"contractId\": \"{{contractId}}\",\n    \"bike\": {\n        \"conditionId\": 1\n    }\n}\n'",
+    "created_at": "2026-05-13 11:23",
+    "updated_at": "2026-05-15 13:43"
+  },
+  {
+    "id": 15,
+    "description": "📝Status base แสดงสถานะ In accounting book ผิด",
+    "curl": "📝 *Status base แสดงสถานะ In accounting book ผิด* (3 สเต๊ป)\n╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋\n\n*1️⃣ เข้าไปดูข้อมูลที่*\n`SAP.accounting_book_status`\n\n╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋\n*2️⃣ เข้าไปดูข้อมูลที่*\n`SAP.accounting_book_status_history`\n\n╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋╋\n*3️⃣ ยิง API แก้ไข status base*\n🌐 *CURL:*\n```\ncurl --location --request PATCH \\\n'http://ntb-prod-alb-backend-2.ntb.team:8080/api/status-base/adjustment' \\\n--header 'userId: 704' \\\n--header 'Content-Type: application/json' \\\n--data-raw '{\n    \"eventId\": 1,\n    \"adjustmentStatusBaseDetail\": [\n        {\n            \"reason\": \"5\",\n            \"currentStatus\": 1,\n            \"action\": 3,\n            \"id\": id,\n            \"effectiveDate\": \"effectiveDate\",\n            \"status\": \"2\",\n            \"referenceValue\": \"referenceValue\"\n        },\n        {\n            \"reason\": \"5\",\n            \"currentStatus\": \"\",\n            \"action\": 1,\n            \"id\": null,\n            \"effectiveDate\": \"effectiveDate\",\n            \"status\": \"\",\n            \"referenceValue\": \"referenceValue\"\n        }\n    ],\n    \"remark\": \"remark\",\n    \"user\": \"user\"\n}'\n```",
+    "created_at": "2026-05-13 15:31",
+    "updated_at": "2026-05-20 00:00"
+  },
+  {
+    "id": 16,
+    "description": "​🖼️customer-infoยิงให้ภาพโชว์รูปลูกค้าคู่ทะเบียน",
+    "curl": "curl --location --request PATCH 'http://rick-api.ntb-prod-alb-backend-2.ntb.team/api/customer-info/person' \\\n--header 'userid: 704' \\\n--header 'Content-Type: application/json' \\\n--data '[\n  {\n    \"idCard\": \"{{idCard}}\",\n    \"pictures\": [\n       {\n                    \"picName\": \"บัตรประชาชนผู้ขอสินเชื่อ\",\n                    \"picPath\": \"{{picPath}}\",\n                    \"isActive\": true,\n                    \"isShowCustomer\": false,\n                    \"isShowCollection\": true\n        }\n    ]\n  }\n]'",
+    "created_at": "2026-05-15 13:52"
+  },
+  {
+    "id": 17,
+    "description": "🧑‍⚖️ ยกเลิกการฟ้องร้อง",
+    "curl": "curl --location --globoff --request DELETE '{{jummeng}}/api/litigation/case/{{case_number}}' \\\n--header 'userid: 704' \\\n--data ''",
+    "created_at": "2026-05-15 13:57"
+  },
+  {
+    "id": 18,
+    "description": "🏛️ยกเลิกผลประมูล",
+    "curl": "🏛️ *ยกเลิกผลประมูล* (8 สเต็ป)\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n*1️⃣ หา รายการขาย*\n(ได้: contract_id, payment_id, sold_id, loan_id, receipt_number)\n📋 *SQL:*\n```\nSELECT con.id as contract_id,\n  con.contract_id as contract_number,\n  con.loan_id,\n  hp.id as payment_id,\n  sold.id as sold_id,\n  sold.receipt_number,\n  sold.property_sale_id,\n  sold.sold_status_id\nFROM property_sale.sold sold\nleft join property_sale.property_sale ps\n  on sold.property_sale_id = ps.id\nleft join property_sale.property_ntb pn\n  on ps.property_id = pn.id\nleft join workflow.contract con\n  on con.id = pn.contract_id\nleft join workflow.history_payment hp\n  on hp.receipt_number = sold.receipt_number\nwhere sold.is_deleted = false\nand ps.is_deleted = false\nand con.contract_id = 'เลขที่สัญญา'\norder by hp.id;\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*2️⃣ ยิง API ยกเลิกใบเสร็จ บน workflow*\n(contract_id, payment_id จาก ข้อ 1)\n🌐 *CURL:*\n```\ncurl --location --globoff --request PATCH \\\n'{{golden}}/api/contracts/{{contract_id}}/payments/{{payment_id}}' \\\n--header 'Userid: 704' \\\n--data ''\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*3️⃣ ยิง API ยกเลิกใบเสร็จ บน property sold*\n(sold_id จาก ข้อ 1)\n🌐 *CURL:*\n```\ncurl --location --globoff --request DELETE \\\n'{{malibu}}/api/property/sold/cancel-receipt/{{sold_id}}' \\\n--header 'Userid: 704'\n```\n✅ *Check sold_status_id = 5 (ยกเลิก)*\n📋 *SQL:*\n```\nselect id, receipt_number, sold_status_id,\n  is_deleted, price, updated_at\nfrom property_sale.sold s\nwhere receipt_number = 'receipt_number';\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*4️⃣ ยิง API เช็ค Loan Flow Status*\n(loan_id จาก ข้อ 1)\n🌐 *CURL:*\n```\ncurl --location --globoff \\\n'{{gringotts}}/api/loan-operations/loans/{{loan_id}}/accounts-receivable?Userid=704' \\\n--header 'Userid: 704'\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*5️⃣ ยิง API update Collection property-sale histories*\n⚠️ *เลือก resultId จาก loanFlowStatus (ข้อ 4):*\n• loanFlowStatus=5 + รถขายแล้ว → resultId = *70* (ขายซ้ำ)\n• loanFlowStatus=4 (สัญญาปิด)   → resultId = *71*\n• loanFlowStatus=5 + รถยังไม่ขาย → resultId = *69* (ยกเลิกขาย)\n🌐 *CURL:*\n```\ncurl --location --globoff \\\n'{{tyrek}}/api/collections/property-sale/histories' \\\n--header 'Userid: 704' \\\n--header 'Content-Type: application/json' \\\n--data '{\n  \"contractId\": contract_id,\n  \"actionId\": 29,\n  \"resultId\": result_id\n}'\n```\n✅ *Check current_state_id:*\n• resultId=70 → 74 หรือ 88 (litigation)\n• resultId=71 → 58\n• resultId=69 → 54 หรือ 87 (litigation)\n📋 *SQL:*\n```\nselect chv.id history_id, chv.collection_id,\n  cv.worklist_id, chv.created_at, chv.created_by,\n  ac.\"name\" action_name, rc.\"name\" result_name,\n  chv.result_id, chv.mark,\n  chv.previous_state_id, chv.current_state_id,\n  chv.is_deleted\nfrom workflow.contract c\njoin stock_management.collection_contract cc\n  on c.id = cc.contract_id\njoin stock_management.collection_v2 cv\n  on cc.id = cv.collection_contract_id\njoin stock_management.collection_history_v2 chv\n  on cv.id = chv.collection_id\njoin stock_management.action_code ac\n  on chv.action_id = ac.id\njoin stock_management.result_code rc\n  on chv.result_id = rc.id\nwhere c.contract_id = 'เลขที่สัญญา'\nand chv.result_id in (69,70,71)\norder by chv.id asc;\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*6️⃣ Check ส่งจดหมายขายรถ*\n(Batch: ntb-send-asset-sale-letter-prod)\n📋 *SQL (sold_notice_letter_request):*\n```\nselect * from property_sale.sold_notice_letter_request\nwhere contract_id = contract_id;\n```\n⚠️ Status Waiting/Failed → update เป็น Success\n\n📋 *SQL (dunning_letter.sending_detail):*\n(ได้: sendingDetailId, is_send_vender → ใช้ข้อ 7)\n```\nSELECT sd.id sendingDetailId,\n  sd.contract_number, sd.is_send_vender,\n  sd.send_vender_date, sd.is_deleted,\n  sd.letter_type_id\nFROM dunning_letter.sending_detail sd\nWHERE sd.letter_type_id in (3,4)\nand sd.contract_number = 'เลขที่สัญญา';\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*7️⃣ ยิง API letter*\n⚠️ *ดู is_send_vender จากข้อ 6 แล้วเลือก:*\n\n┌─ *กรณี is_send_vender = FALSE → ทำ 7.1*\n│  ยิง API flag is_delete sending_detail\n│  (sending_detail_id จาก ข้อ 6)\n│\n│  🌐 CURL:\n│  curl --location --globoff --request DELETE \\\n│  '{{emmanuelle}}/api/dunning/sending-detail/{{sending_detail_id}}' \\\n│  --header 'Userid: 704'\n│\n│  ✅ Check is_deleted = true → ไปต่อข้อ 8\n└─────────────────────────────────\n\n┌─ *กรณี is_send_vender = TRUE → ทำ 7.2*\n│  ยิง API generate จดหมายแจ้งยกเลิกการขาย\n│  (refSendingDetailId = sendingDetailId จาก ข้อ 6)\n│\n│  🌐 CURL:\n│  curl --location --globoff \\\n│  '{{emmanuelle}}/api/dunning/letter/cancel-sold-result' \\\n│  --header 'userid: 704' \\\n│  --header 'Content-Type: application/json' \\\n│  --data '{\n│    \"refSendingDetailId\": refSendingDetailId\n│  }'\n│\n│  ✅ Check letter_type_id = 4 → ไปต่อข้อ 8\n└─────────────────────────────────\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*8️⃣ ยิง API Delete log collection*\n⚠️ *ยิงทุก history_id ที่ได้จาก query นี้*\n📋 *SQL (หา history_id):*\n```\nselect chv.id history_id, chv.collection_id,\n  cv.worklist_id, ac.\"name\" action_name,\n  rc.\"name\" result_name, chv.result_id,\n  chv.mark, chv.previous_state_id,\n  chv.current_state_id, chv.is_deleted\nfrom workflow.contract c\njoin stock_management.collection_contract cc\n  on c.id = cc.contract_id\njoin stock_management.collection_v2 cv\n  on cc.id = cv.collection_contract_id\njoin stock_management.collection_history_v2 chv\n  on cv.id = chv.collection_id\njoin stock_management.action_code ac\n  on chv.action_id = ac.id\njoin stock_management.result_code rc\n  on chv.result_id = rc.id\nwhere c.contract_id = 'เลขที่สัญญา'\nand chv.result_id in (63,64,65,66,67)\norder by chv.id asc;\n```\n🌐 *CURL (ยิงทุก history_id):*\n```\ncurl --location --globoff --request PATCH \\\n'{{tyrek}}/api/collections/histories/{{histories_id}}' \\\n--header 'userid: 704' \\\n--header 'Content-Type: application/json' \\\n--data '[{\n  \"fieldName\": \"isDeleted\",\n  \"value\": \"true\"\n}]'\n```",
+    "created_at": "2026-05-19 10:00",
+    "updated_at": "2026-05-19 10:30"
+  },
+  {
+    "id": 19,
+    "description": "Role งานไม่เข้า/งานไม่ออก",
+    "curl": "⚙️ *Role งานไม่เข้า/งานไม่ออก* (4 สเต็ป)\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n*1️⃣ หา contract id*\nเข้าไปดูข้อมูลที่ `Workflow.Contract`\nหา `id` จาก `contract_id` = เลขสัญญา\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*2️⃣ หา worklist_id*\nเข้าไปที่ `Workflow.Worklist_reference`\nเอา `id` จากข้อ 1 มาหาที่ช่อง `contract_id`\nจากนั้นกดเข้าไปในช่อง `worklist_id` เพื่อดู `workflow_id` กับ `role_id`\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*3️⃣ เช็ค error ใน GG Chat*\nดูข้อมูลว่ามี error แจ้งเตือนไหมที่ *GG chat Distribution(Prod)*\nค้นหาด้วย `worklist_id` จากข้อ 2\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n*4️⃣ ยิง API*\nถ้าเจอข้อความในแชท ก๊อปบอดี้ยิงซ้ำได้เลย\n\n┌─ *งานไม่เข้า*\n│  🌐 *CURL:*\n│  ```\n│  curl --location --request POST \\\n│  'http://hephaestus-api.ntb-prod-alb-backend-1.ntb.team/api/distributions/tasks/work-entry' \\\n│  --header 'userId: 704' \\\n│  --header 'Content-Type: application/json' \\\n│  --data ''\n│  ```\n└─────────────────────────────────\n\n┌─ *งานไม่ออก*\n│  🌐 *CURL:*\n│  ```\n│  curl --location --request POST \\\n│  'http://hephaestus-api.ntb-prod-alb-backend-1.ntb.team/api/distributions/tasks/work-done' \\\n│  --header 'userId: 704' \\\n│  --header 'Content-Type: application/json' \\\n│  --data ''\n│  ```\n└─────────────────────────────────",
+    "created_at": "2026-05-20 15:38",
+    "updated_at": "2026-05-20 15:42"
+  }
+]
