@@ -194,31 +194,58 @@ def extract_identifiers(text: str) -> list:
     return list(dict.fromkeys(x for x in identifiers if x not in noise and len(x) > 3))
 
 
-def search_gitlab_code(identifiers: list, max_results: int = 4) -> str:
-    """ค้นหา source code จาก GitLab API แทนการอ่านไฟล์ local"""
-    if not identifiers or not GITLAB_TOKEN:
-        return ""
+def _gitlab_request(path: str) -> list:
     import ssl
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
+    url = f"{GITLAB_URL}/api/v4{path}"
+    req = urllib.request.Request(url, headers={"PRIVATE-TOKEN": GITLAB_TOKEN})
+    with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+        return json.loads(resp.read())
+
+
+def extract_service_name(text: str) -> str:
+    """ดึงชื่อ service จาก error เช่น [HOGAN] หรือ [ERROR] PREDATOR"""
+    m = re.search(r'\[([A-Z][A-Z0-9_-]{2,})\]', text)
+    if m and m.group(1) not in ('API', 'ERROR', 'API_ERROR'):
+        return m.group(1)
+    return ""
+
+
+def search_gitlab_code(identifiers: list, service_name: str = "", max_results: int = 4) -> str:
+    """ค้นหา source code จาก GitLab API — หา project จากชื่อ service แล้วค้นหา blobs"""
+    if not GITLAB_TOKEN:
+        return ""
     snippets = []
     seen = set()
-    for term in identifiers[:3]:
+
+    # หา project id จากชื่อ service
+    project_ids = []
+    if service_name:
         try:
-            url = f"{GITLAB_URL}/api/v4/search?scope=blobs&search={term}&per_page=3"
-            req = urllib.request.Request(url, headers={"PRIVATE-TOKEN": GITLAB_TOKEN})
-            with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
-                results = json.loads(resp.read())
-            for r in results:
-                key = f"{r.get('project_id')}/{r.get('path')}"
-                if key not in seen:
-                    seen.add(key)
-                    snippets.append(f"// {r.get('path', '')}\n{r.get('data', '')}")
-                    if len(snippets) >= max_results:
-                        return "\n\n".join(snippets)
+            projects = _gitlab_request(f"/projects?search={service_name.lower()}&per_page=5&membership=true")
+            project_ids = [p["id"] for p in projects]
         except Exception as e:
-            print(f"[gitlab] {term}: {e}")
+            print(f"[gitlab] find project: {e}")
+
+    for term in identifiers[:3]:
+        for pid in project_ids[:3] or [None]:
+            try:
+                if pid:
+                    path = f"/projects/{pid}/search?scope=blobs&search={term}&per_page=3"
+                else:
+                    break
+                results = _gitlab_request(path)
+                for r in results:
+                    key = f"{r.get('project_id')}/{r.get('path')}"
+                    if key not in seen:
+                        seen.add(key)
+                        snippets.append(f"// {r.get('path', '')}\n{r.get('data', '')}")
+                        if len(snippets) >= max_results:
+                            return "\n\n".join(snippets)
+            except Exception as e:
+                print(f"[gitlab] search {term} in {pid}: {e}")
     return "\n\n".join(snippets)
 
 
@@ -547,8 +574,9 @@ def handle_ai_chat(text: str, session_key: str) -> str:
     source_section = ""
     if is_error_message(text):
         identifiers = extract_identifiers(text)
-        if identifiers:
-            combined = search_gitlab_code(identifiers)
+        service_name = extract_service_name(text)
+        if identifiers or service_name:
+            combined = search_gitlab_code(identifiers, service_name)
             if combined:
                 if len(combined) > 4000:
                     combined = combined[:4000] + "\n... (ตัดออกเพราะยาวเกิน)"
