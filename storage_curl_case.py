@@ -851,9 +851,6 @@ def webhook():
 
         if arg_text:
             reply = process_message(arg_text, session_key)
-            if is_error_message(arg_text):
-                header = f"🔔 *Auto-analyzed* | {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
-                threading.Thread(target=send_to_gchat_webhook, args=(header + reply,), daemon=True).start()
             return jsonify({"text": reply})
 
     return jsonify({})
