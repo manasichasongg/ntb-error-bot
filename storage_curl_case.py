@@ -833,10 +833,6 @@ def webhook():
                     header = f"🔔 *Auto-analyzed* | {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
                     threading.Thread(target=send_to_gchat_webhook, args=(header + reply,), daemon=True).start()
                 return addons_response(reply)
-            elif full_text and is_error_message(full_text):
-                # ไม่ถูก @mention แต่มี error → วิเคราะห์เงียบๆ background
-                threading.Thread(target=_silent_analyze, args=(full_text,), daemon=True).start()
-                return jsonify({})
             return jsonify({})
         if "addedToSpacePayload" in chat:
             return addons_response(f"สวัสดี! ฉันช่วยเก็บและค้นหา curl cases ให้\n\n{HELP_TEXT}")
@@ -859,9 +855,6 @@ def webhook():
                 header = f"🔔 *Auto-analyzed* | {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
                 threading.Thread(target=send_to_gchat_webhook, args=(header + reply,), daemon=True).start()
             return jsonify({"text": reply})
-        elif raw_text and is_error_message(raw_text):
-            threading.Thread(target=_silent_analyze, args=(raw_text,), daemon=True).start()
-            return jsonify({})
 
     return jsonify({})
 
