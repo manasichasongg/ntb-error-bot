@@ -40,6 +40,7 @@ _sheets_cache: dict = {"data": None, "ts": 0}
 NGROK_DOMAIN = "epileptic-kennel-fling.ngrok-free.dev"
 REPOS_DIR = r"C:\Users\manasicha.son\Downloads\theme"
 ANALYZE_SPACE = "spaces/AAQAy9XnBM0"  # ห้อง Bot error analyze — ไม่ส่ง webhook ซ้ำจากห้องนี้
+WEBHOOK_ENABLED = False  # ตั้งเป็น True เมื่อต้องการเปิดส่งข้อความเข้าห้อง Bot error analyze
 GITLAB_URL = os.environ.get("GITLAB_URL", "https://git.ntbx.tech")
 GITLAB_TOKEN = os.environ.get("GITLAB_TOKEN", "aV1D4MnkC-_8pXW9DxJ6")
 
@@ -801,6 +802,8 @@ def _silent_analyze(text: str):
 
 def send_to_gchat_webhook(text: str) -> bool:
     """ส่งข้อความไปห้อง Bot error analyze ผ่าน webhook"""
+    if not WEBHOOK_ENABLED:
+        return False
     if not ANALYZE_WEBHOOK:
         return False
     try:
