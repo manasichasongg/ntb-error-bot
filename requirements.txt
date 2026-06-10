@@ -1,2 +1,4 @@
 flask
 groq
+APScheduler
+pytz

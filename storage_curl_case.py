@@ -10,6 +10,8 @@ import urllib.request
 from datetime import datetime
 from flask import Flask, request, jsonify
 from groq import Groq
+from apscheduler.schedulers.background import BackgroundScheduler
+import pytz
 
 app = Flask(__name__)
 
@@ -1012,6 +1014,19 @@ def ingest():
 
     print(f"[ingest] ส่ง webhook {'สำเร็จ' if sent else 'ล้มเหลว'}")
     return jsonify({"status": "ok", "sent": sent})
+
+
+def _scheduled_remind():
+    msg = format_remind_message()
+    sent = send_to_gchat_webhook(msg)
+    print(f"[scheduler] remind {'ok' if sent else 'failed'}", flush=True)
+
+_bkk = pytz.timezone("Asia/Bangkok")
+_scheduler = BackgroundScheduler(timezone=_bkk)
+for _hr in (9, 13, 16):
+    _scheduler.add_job(_scheduled_remind, "cron", hour=_hr, minute=0)
+_scheduler.start()
+print("[scheduler] started — remind at 09:00, 13:00, 16:00 BKK", flush=True)
 
 
 if __name__ == "__main__":
