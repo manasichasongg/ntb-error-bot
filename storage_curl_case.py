@@ -14,8 +14,9 @@ from groq import Groq
 app = Flask(__name__)
 
 DATA_DIR = os.environ.get("DATA_DIR", os.path.dirname(os.path.abspath(__file__)))
-STORAGE_FILE = os.path.join(DATA_DIR, "curl_cases.json")
-ROLE_FILE    = os.path.join(DATA_DIR, "role_permissions.json")
+STORAGE_FILE  = os.path.join(DATA_DIR, "curl_cases.json")
+ROLE_FILE     = os.path.join(DATA_DIR, "role_permissions.json")
+MISSIONS_FILE = os.path.join(DATA_DIR, "missions.json")
 CONFIG_FILE  = os.path.join(DATA_DIR, "config.json")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 
@@ -111,7 +112,12 @@ HELP_TEXT = (
     "พิมข้อความอะไรก็ได้ บอทจะตอบด้วย AI\n"
     "เช่น: `error นี้แปลว่าอะไร`, `case 6 ใช้ทำอะไร`\n\n"
     "*🗑️ ล้างประวัติการสนทนา AI*\n"
-    "`ล้างแชท`"
+    "`ล้างแชท`\n\n"
+    "*📌 Mission ประจำวัน*\n"
+    "`mission add [รายละเอียด]` — เพิ่ม mission\n"
+    "`mission` — ดู mission ทั้งหมดที่ยังค้างอยู่\n"
+    "`mission done [id]` — ทำเสร็จแล้ว\n"
+    "`mission clear` — ลบ mission ที่เสร็จแล้วทั้งหมด"
 )
 
 
@@ -696,6 +702,89 @@ def handle_clear_chat(session_key: str) -> str:
     return "🗑️ ล้างประวัติการสนทนาแล้ว"
 
 
+# ── Mission helpers ────────────────────────────────────────────────────────────
+
+def load_missions() -> list:
+    try:
+        with open(MISSIONS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def save_missions(missions: list):
+    with open(MISSIONS_FILE, "w", encoding="utf-8") as f:
+        json.dump(missions, f, ensure_ascii=False, indent=2)
+
+
+def mission_next_id(missions: list) -> int:
+    return max((m["id"] for m in missions), default=0) + 1
+
+
+def handle_mission_add(text: str, added_by: str = "") -> str:
+    if not text.strip():
+        return "ใส่รายละเอียด mission ด้วยนะ เช่น: `mission add ตรวจสอบ error log`"
+    missions = load_missions()
+    mission = {
+        "id": mission_next_id(missions),
+        "text": text.strip(),
+        "added_by": added_by,
+        "added_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "done": False,
+    }
+    missions.append(mission)
+    save_missions(missions)
+    return f"📌 เพิ่ม mission #{mission['id']} แล้ว: {mission['text']}"
+
+
+def handle_mission_list() -> str:
+    missions = load_missions()
+    pending = [m for m in missions if not m["done"]]
+    if not pending:
+        return "✅ ไม่มี mission ค้างอยู่"
+    lines = [f"📋 *Mission ที่ยังค้างอยู่ ({len(pending)} รายการ)*\n"]
+    for m in pending:
+        lines.append(f"  #{m['id']} — {m['text']}")
+        lines.append(f"  _เพิ่มโดย {m['added_by'] or 'ไม่ระบุ'} เมื่อ {m['added_at']}_\n")
+    return "\n".join(lines)
+
+
+def handle_mission_done(id_str: str) -> str:
+    if not id_str.strip().isdigit():
+        return "ระบุ ID เป็นตัวเลข เช่น: `mission done 3`"
+    mid = int(id_str.strip())
+    missions = load_missions()
+    m = next((x for x in missions if x["id"] == mid), None)
+    if not m:
+        return f"ไม่พบ mission #{mid}"
+    if m["done"]:
+        return f"mission #{mid} ทำเสร็จไปแล้ว"
+    m["done"] = True
+    save_missions(missions)
+    return f"✅ mission #{mid} เสร็จแล้ว: {m['text']}"
+
+
+def handle_mission_clear() -> str:
+    missions = load_missions()
+    remaining = [m for m in missions if not m["done"]]
+    removed = len(missions) - len(remaining)
+    save_missions(remaining)
+    return f"🧹 ลบ mission ที่เสร็จแล้ว {removed} รายการ"
+
+
+def format_remind_message() -> str:
+    missions = load_missions()
+    pending = [m for m in missions if not m["done"]]
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+    if not pending:
+        return f"📌 *Daily Mission* | {now_str}\n\n✅ ไม่มี mission ค้างอยู่ในวันนี้"
+    lines = [f"📌 *Daily Mission* | {now_str}\n"]
+    for m in pending:
+        lines.append(f"  ☐ #{m['id']} — {m['text']}")
+    lines.append(f"\nพิมพ์ `mission done [id]` เมื่อทำเสร็จ")
+    return "\n".join(lines)
+
+
 # ── Message router ─────────────────────────────────────────────────────────────
 
 def process_message(raw_text: str, session_key: str = "default") -> str:
@@ -767,6 +856,22 @@ def process_message(raw_text: str, session_key: str = "default") -> str:
 
     if lower in ("help", "ช่วยเหลือ", "?"):
         return HELP_TEXT
+
+    # ── Mission commands ──────────────────────────────────────────────────────
+    if lower.startswith("mission add ") or lower.startswith("mission add:"):
+        body = re.split(r"mission add[: ]+", text, maxsplit=1, flags=re.IGNORECASE)[-1].strip()
+        sender = session_key.split("_")[1] if "_" in session_key else session_key
+        return handle_mission_add(body, added_by=sender)
+
+    if lower.startswith("mission done ") or lower.startswith("mission done:"):
+        id_str = re.split(r"mission done[: ]+", text, maxsplit=1, flags=re.IGNORECASE)[-1].strip()
+        return handle_mission_done(id_str)
+
+    if lower == "mission clear":
+        return handle_mission_clear()
+
+    if lower in ("mission", "mission list", "missions"):
+        return handle_mission_list()
 
     # พิมแค่เลข ID → ถามตัวแปรที่ขาด (ถ้ามี)
     if lower.isdigit():
@@ -870,6 +975,15 @@ def webhook():
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"})
+
+
+@app.route("/remind", methods=["GET", "POST"])
+def remind():
+    """ถูกเรียกโดย cron-job.org ตาม schedule → ส่ง mission ไปห้อง Bot error analyze"""
+    msg = format_remind_message()
+    sent = send_to_gchat_webhook(msg)
+    print(f"[remind] ส่ง mission reminder {'สำเร็จ' if sent else 'ล้มเหลว'}")
+    return jsonify({"status": "ok", "sent": sent, "missions": msg})
 
 
 @app.route("/ingest", methods=["POST"])
