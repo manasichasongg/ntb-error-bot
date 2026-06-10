@@ -29,7 +29,11 @@ def _load_config() -> dict:
 
 _config = _load_config()
 # รับจาก env var ก่อน ถ้าไม่มีค่อยอ่านจาก config.json
-ANALYZE_WEBHOOK = os.environ.get("ANALYZE_WEBHOOK", "") or _config.get("webhook_url", "")
+ANALYZE_WEBHOOK = (
+    os.environ.get("ANALYZE_WEBHOOK", "")
+    or _config.get("webhook_url", "")
+    or "https://chat.googleapis.com/v1/spaces/AAQAy9XnBM0/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=cGQbSiUNTUj0tH5PnglbpgPMJlKy33KDrYmLFK8z58Y"
+)
 
 SHEETS_URL = (
     "https://docs.google.com/spreadsheets/d/"
