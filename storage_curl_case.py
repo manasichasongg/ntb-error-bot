@@ -883,6 +883,16 @@ def process_message(raw_text: str, session_key: str = "default") -> str:
     if lower.isdigit():
         return start_fill_conversation(int(lower), session_key)
 
+    # ลอง match curl case ก่อน — ถ้าเจอ return raw data เลย ไม่ผ่าน AI
+    _cases = load_cases()
+    _matches = semantic_search(text, _cases)
+    if _matches:
+        lines = [f"🔍 พบ {len(_matches)} case(s):\n"]
+        for c in _matches:
+            lines.append(f"*ID {c['id']}: {c['description']}*")
+            lines.append(f"```\n{c['curl']}\n```")
+        return "\n".join(lines)
+
     return handle_ai_chat(text, session_key)
 
 
